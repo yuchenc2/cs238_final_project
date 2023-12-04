@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+import random
 
 # Load the data from the text file
-data = pd.read_csv('sample.txt', delimiter='\t')
+data = pd.read_csv('small.txt', delimiter='\t')
 
 # Define the reward calculation based on the sum of score differences
 def calculate_reward(row):
@@ -63,7 +64,7 @@ utilities = {tuple(row): utility_function(row) for _, row in current_states.iter
 # Define parameters for the iterative process
 learning_rate = 0.1
 convergence_threshold = 0.01
-max_iterations = 1000
+max_iterations = 100
 
 # Iterative update process
 for iteration in range(max_iterations):
@@ -78,7 +79,7 @@ for iteration in range(max_iterations):
 
         old_utility = utilities.get(state, 0)
         transition_prob = transition_probabilities[state][action].get(next_state, 0)
-        updated_utilities[state] += learning_rate * (transition_prob * (reward + utilities.get(next_state, 0)) - utilities.get(state, 0))
+        updated_utilities[state] += reward + learning_rate * (transition_prob * ( utilities.get(next_state, 0)) - utilities.get(state, 0))
         delta = max(delta, abs(old_utility - updated_utilities[state]))
 
     utilities = updated_utilities
@@ -104,4 +105,24 @@ for state in utilities:
 
 # Extracting results
 cumulative_reward_optimal_policy = sum(final_scores.values())
-print(f"Final Score: {cumulative_reward_optimal_policy}")
+print(f"Final Score (Optimal): {cumulative_reward_optimal_policy}")
+
+# Function to choose a random action for each state
+def choose_random_action(state, transition_probabilities):
+    if state not in transition_probabilities:
+        return None
+    actions = list(transition_probabilities[state].keys())
+    return random.choice(actions) if actions else None
+
+# Calculate the cumulative reward for a random policy
+cumulative_reward_random_policy = 0
+
+for state in utilities:
+    random_action = choose_random_action(state, transition_probabilities)
+    if random_action:
+        for next_state in transition_probabilities[state][random_action]:
+            transition_prob = transition_probabilities[state][random_action][next_state]
+            reward = rewards[state][random_action]
+            cumulative_reward_random_policy += reward + transition_prob * (utilities.get(next_state, 0))
+
+print(f"Final Score (Random): {cumulative_reward_random_policy}")
