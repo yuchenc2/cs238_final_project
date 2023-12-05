@@ -4,14 +4,11 @@ from collections import defaultdict
 import random
 
 # Load the data from the text file
-data = pd.read_csv('small.txt', delimiter='\t')
+data = pd.read_csv('sample.txt', delimiter='\t')
 
 # Define the reward calculation based on the sum of score differences
 def calculate_reward(row):
     return sum([
-        row['Next E_Score'] - row['E_Score'],
-        row['Next S_Score'] - row['S_Score'],
-        row['Next WLB_Score'] - row['WLB_Score'],
         row['Next P_Score'] - row['P_Score'],
         row['Next C_Rating'] - row['C_Rating']
     ])
@@ -21,8 +18,7 @@ data['Reward'] = data.apply(calculate_reward, axis=1)
 
 # Define utility function based on the state features
 def utility_function(row):
-    # Placeholder utility function, can be adjusted based on specific needs
-    return row['E_Score'] + row['S_Score'] + row['WLB_Score'] + row['P_Score'] + row['C_Rating']
+    return row['P_Score'] + row['C_Rating']
 
 # Calculate rewards and transition probabilities
 def calculate_rewards_and_transitions(data):
@@ -31,9 +27,9 @@ def calculate_rewards_and_transitions(data):
     state_action_counts = defaultdict(lambda: defaultdict(int))
 
     for _, row in data.iterrows():
-        state = tuple(row[:8])  # Current state features
-        action = tuple(row[8:10])  # Action features
-        next_state = tuple(row[11:19])  # Next state features
+        state = tuple(row[:4])
+        action = row[4]
+        next_state = tuple(row[6:9])
 
         rewards[state][action] += row['Reward']
         transition_counts[state][action][next_state] += 1
@@ -58,7 +54,7 @@ def calculate_rewards_and_transitions(data):
 rewards, transition_probabilities = calculate_rewards_and_transitions(data)
 
 # Initialize utilities for each unique state
-current_states = data.iloc[:, :8].drop_duplicates()
+current_states = data.iloc[:, :4].drop_duplicates()
 utilities = {tuple(row): utility_function(row) for _, row in current_states.iterrows()}
 
 # Define parameters for the iterative process
@@ -72,14 +68,14 @@ for iteration in range(max_iterations):
     delta = 0
     print(iteration)
     for _, row in data.iterrows():
-        state = tuple(row[:8])
-        action = tuple(row[8:10])
-        next_state = tuple(row[11:19])
+        state = tuple(row[:4])
+        action = row[4]
+        next_state = tuple(row[6:9])
         reward = rewards[state][action]
 
         old_utility = utilities.get(state, 0)
         transition_prob = transition_probabilities[state][action].get(next_state, 0)
-        updated_utilities[state] += reward + learning_rate * (transition_prob * ( utilities.get(next_state, 0)) - utilities.get(state, 0))
+        updated_utilities[state] += learning_rate * (reward + transition_prob * ( utilities.get(next_state, 0)) - utilities.get(state, 0))
         delta = max(delta, abs(old_utility - updated_utilities[state]))
 
     utilities = updated_utilities
