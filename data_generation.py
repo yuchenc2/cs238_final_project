@@ -64,8 +64,7 @@ job_title_numeric = {'software engineer': 0, 'senior software engineer': 1, 'tec
 for row in data:
     job_title_numeric_value = job_title_numeric[row[0]]
     years_of_experience = row[1]  # Years of experience
-    years_of_experience_in_months = int(years_of_experience * 12)  # Convert years to months
-    months_at_company = int(years_of_experience * 12)  # Assuming time at company is equal to years of experience
+    months_at_company = int(years_of_experience * 12)  # Convert years to months
 
     # Current performance metrics
     current_metrics = np.array(row[2:4])
@@ -76,7 +75,7 @@ for row in data:
         # State Vector including current performance metrics
         state_vector = np.array([
             job_title_numeric_value,
-            years_of_experience_in_months + month,
+            month,
             *current_metrics
         ])
 
@@ -95,10 +94,10 @@ for row in data:
         reward = sum(next_state_vector[2:] - current_metrics)  # Consider only P_Score and C_Rating for reward
 
         # Next years of experience in months
-        next_years_of_experience_in_months = years_of_experience_in_months + month + 1
+        next_years_of_experience_in_months = month + 1
 
         # Append each month's data for the employee
-        monthly_data = [job_title_numeric_value, years_of_experience_in_months + month, 
+        monthly_data = [job_title_numeric_value, month, 
                             *current_metrics, training_program, 
                             reward, next_years_of_experience_in_months, 
                             *next_state_vector[2:]
