@@ -1,4 +1,5 @@
 import numpy as np
+import json
 from scipy.stats import dirichlet, norm
 
 TRAINING_CATEGORIES = [
@@ -21,6 +22,7 @@ class BayesianMDP:
         self.R = np.array([[norm(loc=0, scale=1) for _ in self.A] for _ in self.S])
         self.gamma = discount_factor
         self.U = np.zeros(num_states)
+        self.optimal_policy = {}
 
     def get_state_index(self, state_tuple):
         if state_tuple not in self.state_index_map:
@@ -49,6 +51,13 @@ class BayesianMDP:
         self.D[s, a] = dirichlet(alpha)
         self.U[s] = self.lookahead(s, a)
         return self
+    
+    def derive_optimal_policy(self):
+        """Derive the optimal policy based on the current utility values."""
+        self.optimal_policy = np.zeros(len(self.S), dtype=int)
+        for s in self.S:
+            best_action = np.argmax([self.lookahead(s, a) for a in self.A])
+            self.optimal_policy[s] = best_action
 
 def parse_data(file_path):
     with open(file_path, 'r') as file:
@@ -68,20 +77,9 @@ def value_iteration(mdp, threshold=0.001):
             delta = max(delta, abs(v - mdp.U[s]))
         if delta < threshold:
             break
-
-def calculate_cumulative_reward(mdp, start_probabilities):
-    value_iteration(mdp)
-    cumulative_reward = sum(start_probabilities[s] * mdp.U[s] for s in mdp.S)
-    return cumulative_reward
-
-def simulate_random_policy(mdp, start_probabilities, num_simulations=1000):
-    np.random.seed(0)  # For reproducibility
-    total_reward = 0
-    for _ in range(num_simulations):
-        s = np.random.choice(mdp.S, p=start_probabilities)
-        a = np.random.choice(mdp.A)
-        total_reward += mdp.R[s, a].mean()
-    return total_reward / num_simulations
+    print("done with value iteration")
+    mdp.derive_optimal_policy()
+    print("Derived optimal policy")
 
 # Load and preprocess data
 data = parse_data('sample.txt')
@@ -102,13 +100,19 @@ for row in data:
     s_prime_index = mdp.get_state_index(s_prime)
     mdp.update(s_index, a, r, s_prime_index)
 
-# Assuming uniform probability for starting states
-start_probabilities = np.ones(num_states) / num_states
+def create_action_index_map(categories):
+    """Create a mapping from training categories to indices."""
+    return {action: idx for idx, action in enumerate(categories)}
 
-# Calculate cumulative reward for learned optimal policy using the updated value function
-optimal_cumulative_reward = sum(start_probabilities[s] * mdp.U[s] for s in mdp.S)
-print(f"Cumulative Reward of the Learned Optimal Policy: {optimal_cumulative_reward}")
+value_iteration(mdp)
 
-# Calculate cumulative reward for random policy
-random_cumulative_reward = simulate_random_policy(mdp, start_probabilities)
-print(f"Cumulative Reward of the Random Policy: {random_cumulative_reward}")
+# After running the value iteration and deriving the optimal policy
+action_index_map = create_action_index_map(TRAINING_CATEGORIES)
+optimal_policy_indices = {state_idx: action_index_map[TRAINING_CATEGORIES[action_idx]] for state_idx, action_idx in enumerate(mdp.optimal_policy)}
+
+# Saving the optimal policy to a file
+output_file = "optimal_policy.json"
+with open(output_file, 'w') as file:
+    json.dump(optimal_policy_indices, file)
+
+print(f"Optimal policy saved to {output_file}")

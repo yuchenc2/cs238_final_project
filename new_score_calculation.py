@@ -20,7 +20,7 @@ unique_actions = data['Training Program'].unique()
 state_to_index = {tuple(state): idx for idx, state in enumerate(unique_states.values)}
 action_to_index = {action: idx for idx, action in enumerate(unique_actions)}
 
-def evaluate_policy(data, policy, max_steps=10, discount_factor=1.0):
+def evaluate_policy(data, policy, max_steps = 5, discount_factor=1.0):
     """Evaluate the given policy for each unique state."""
     total_reward = 0
     num_states = len(unique_states)
@@ -57,14 +57,12 @@ def evaluate_policy(data, policy, max_steps=10, discount_factor=1.0):
     average_reward = total_reward / num_states
     return average_reward
 
-def evaluate_random_policy(data, unique_actions, max_steps=10, discount_factor=1.0):
+def evaluate_random_policy(data, unique_actions, max_steps=5, discount_factor=1.0):
     """Evaluate a random policy for each unique state."""
     total_reward = 0
     num_states = len(unique_states)
-
     for _, state_row in unique_states.iterrows():
         state = tuple(state_row)
-
         episode_reward = 0
         current_discount = 1.0
         for _ in range(max_steps):
