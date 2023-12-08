@@ -7,7 +7,7 @@ import time
 import json
 
 # Load the data from the text file
-input_file = 'sample.txt'
+input_file = 'large.txt'
 data = pd.read_csv(input_file, delimiter='\t')
 
 unique_states = data[['Job Title Numeric', 'Years of Experience in Months', 'P_Score', 'C_Rating']].drop_duplicates()
@@ -69,7 +69,7 @@ current_states = data.iloc[:, :4].drop_duplicates()
 utilities = {tuple(row): utility_function(row) for _, row in current_states.iterrows()}
 
 # Define parameters for the iterative process
-learning_rate = 0.1
+discount_factor = 0.5
 convergence_threshold = 0.01
 max_iterations = 100
 
@@ -77,17 +77,18 @@ max_iterations = 100
 for iteration in range(max_iterations):
     updated_utilities = utilities.copy()
     delta = 0
-    print(iteration)
-    for _, row in data.iterrows():
-        state = tuple(row[:4])
-        action = row[4]
-        next_state = tuple(row[6:9])
-        reward = rewards[state][action]
+    print(f"Iteration {iteration}")
 
-        old_utility = utilities.get(state, 0)
-        transition_prob = transition_probabilities[state][action].get(next_state, 0)
-        updated_utilities[state] += learning_rate * (reward + transition_prob * ( utilities.get(next_state, 0)) - utilities.get(state, 0))
-        delta = max(delta, abs(old_utility - updated_utilities[state]))
+    print(len(utilities))
+    for state in utilities:
+        for action in transition_probabilities[state]:
+            expected_utility = 0
+            for next_state, prob in transition_probabilities[state][action].items():
+                expected_utility += prob * utilities.get(next_state, 0)
+            updated_utility = rewards[state][action] + discount_factor * expected_utility
+
+            delta = max(delta, abs(updated_utilities[state] - updated_utility))
+            updated_utilities[state] = updated_utility
 
     utilities = updated_utilities
     if delta < convergence_threshold:

@@ -3,14 +3,14 @@ import pandas as pd
 import json
 
 # Load the policy from the file
-with open('sample.policy', 'r') as file:
+with open('medium.policy', 'r') as file:
     policy = json.load(file)
 
 # Convert policy keys from string to integer (if necessary)
 policy = {int(k): v for k, v in policy.items()}
 
 # Load the data
-data = pd.read_csv('sample.txt', delimiter='\t')  # Ensure this matches your data file
+data = pd.read_csv('medium.txt', delimiter='\t')  # Ensure this matches your data file
 
 # Unique states and actions
 unique_states = data[['Job Title Numeric', 'Years of Experience in Months', 'P_Score', 'C_Rating']].drop_duplicates()
@@ -20,7 +20,7 @@ unique_actions = data['Training Program'].unique()
 state_to_index = {tuple(state): idx for idx, state in enumerate(unique_states.values)}
 action_to_index = {action: idx for idx, action in enumerate(unique_actions)}
 
-def evaluate_policy(data, policy, max_steps = 5, discount_factor=1.0):
+def evaluate_policy(data, policy, max_steps = 100, discount_factor=1.0):
     """Evaluate the given policy for each unique state."""
     total_reward = 0
     num_states = len(unique_states)
@@ -57,7 +57,7 @@ def evaluate_policy(data, policy, max_steps = 5, discount_factor=1.0):
     average_reward = total_reward / num_states
     return average_reward
 
-def evaluate_random_policy(data, unique_actions, max_steps=5, discount_factor=1.0):
+def evaluate_random_policy(data, unique_actions, max_steps=100, discount_factor=1.0):
     """Evaluate a random policy for each unique state."""
     total_reward = 0
     num_states = len(unique_states)
