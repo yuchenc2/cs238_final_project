@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import json
 from scipy.stats import dirichlet, norm
 
@@ -22,7 +23,8 @@ class BayesianMDP:
         self.R = np.array([[norm(loc=0, scale=1) for _ in self.A] for _ in self.S])
         self.gamma = discount_factor
         self.U = np.zeros(num_states)
-        self.optimal_policy = {}
+        self.optimal_policy = np.zeros(len(self.S), dtype=int)
+        self.lookahead_cache = {}  # Cache for lookahead values
 
     def get_state_index(self, state_tuple):
         if state_tuple not in self.state_index_map:
@@ -37,12 +39,17 @@ class BayesianMDP:
         self.R[s, a] = norm(loc=new_mean, scale=new_std)
 
     def lookahead(self, s, a):
+        if (s, a) in self.lookahead_cache:
+            return self.lookahead_cache[(s, a)]
+
         n = sum(self.D[s, a].alpha)
         if n == 0:
             return 0.0
         expected_reward = self.R[s, a].mean()
         T = lambda s_prime: self.D[s, a].alpha[s_prime] / n
-        return expected_reward + self.gamma * sum(T(s_prime) * self.U[s_prime] for s_prime in self.S)
+        result = expected_reward + self.gamma * sum(T(s_prime) * self.U[s_prime] for s_prime in self.S)
+        self.lookahead_cache[(s, a)] = result
+        return result
 
     def update(self, s, a, r, s_prime):
         self.update_reward_model(s, a, r)
@@ -54,9 +61,9 @@ class BayesianMDP:
     
     def derive_optimal_policy(self):
         """Derive the optimal policy based on the current utility values."""
-        self.optimal_policy = np.zeros(len(self.S), dtype=int)
         for s in self.S:
-            best_action = np.argmax([self.lookahead(s, a) for a in self.A])
+            lookahead_values = [self.lookahead(s, a) for a in self.A]
+            best_action = np.argmax(lookahead_values)
             self.optimal_policy[s] = best_action
 
 def parse_data(file_path):
@@ -72,8 +79,10 @@ def value_iteration(mdp, threshold=0.001):
     while True:
         delta = 0
         for s in mdp.S:
+            print(s)
             v = mdp.U[s]
-            mdp.U[s] = max(mdp.lookahead(s, a) for a in mdp.A)
+            lookahead_values = [mdp.lookahead(s, a) for a in mdp.A]
+            mdp.U[s] = max(lookahead_values)
             delta = max(delta, abs(v - mdp.U[s]))
         if delta < threshold:
             break
@@ -81,17 +90,21 @@ def value_iteration(mdp, threshold=0.001):
     mdp.derive_optimal_policy()
     print("Derived optimal policy")
 
+start_time = time.time()
+
 # Load and preprocess data
 data = parse_data('sample.txt')
+print("parsed data")
 
 # Adjust number of states and actions based on your data
 num_states = 9075
 num_actions = len(TRAINING_CATEGORIES)
 mdp = BayesianMDP(num_states, num_actions, discount_factor=0.9)
+print("Built model")
 
-count = 0
 # Train the model with the data
 for row in data:
+    print(row)
     s = (int(row[0]), int(row[1]), float(row[2]), float(row[3]))
     s_index = mdp.get_state_index(s)
     a = encode_action(row[4])
@@ -104,6 +117,7 @@ def create_action_index_map(categories):
     """Create a mapping from training categories to indices."""
     return {action: idx for idx, action in enumerate(categories)}
 
+print("Doing Value Iteration")
 value_iteration(mdp)
 
 # After running the value iteration and deriving the optimal policy
@@ -116,3 +130,9 @@ with open(output_file, 'w') as file:
     json.dump(optimal_policy_indices, file)
 
 print(f"Optimal policy saved to {output_file}")
+
+end_time = time.time()  # Record the end time
+
+# Calculate the duration and print it
+duration = end_time - start_time
+print(f"Process completed in {duration:.2f} seconds")

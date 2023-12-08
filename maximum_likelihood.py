@@ -3,6 +3,7 @@ import numpy as np
 from collections import defaultdict
 import random
 import os
+import time
 import json
 
 # Load the data from the text file
@@ -57,6 +58,8 @@ def calculate_rewards_and_transitions(data):
                 transition_probabilities[state][action][next_state] = count / state_action_counts[state][action]
 
     return rewards, transition_probabilities
+
+start_time = time.time()
 
 # Calculate rewards and transition probabilities
 rewards, transition_probabilities = calculate_rewards_and_transitions(data)
@@ -120,3 +123,8 @@ with open(output_file, 'w') as file:
 
 print(f"Optimal policy saved to {output_file}")
 
+end_time = time.time()  # Record the end time
+
+# Calculate the duration and print it
+duration = end_time - start_time
+print(f"Process completed in {duration:.2f} seconds")
