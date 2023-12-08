@@ -2,9 +2,17 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 import random
+import os
+import json
 
 # Load the data from the text file
-data = pd.read_csv('sample.txt', delimiter='\t')
+input_file = 'sample.txt'
+data = pd.read_csv(input_file, delimiter='\t')
+
+unique_states = data[['Job Title Numeric', 'Years of Experience in Months', 'P_Score', 'C_Rating']].drop_duplicates()
+unique_actions = data['Training Program'].unique()
+state_to_index = {tuple(state): idx for idx, state in enumerate(unique_states.values)}
+action_to_index = {action: idx for idx, action in enumerate(unique_actions)}
 
 # Define the reward calculation based on the sum of score differences
 def calculate_reward(row):
@@ -85,7 +93,6 @@ for iteration in range(max_iterations):
 
 # Determine the optimal policy and final scores
 optimal_policy = defaultdict(tuple)
-final_scores = defaultdict(float)
 
 for state in utilities:
     best_action = None
@@ -97,28 +104,19 @@ for state in utilities:
                 best_utility = current_utility
                 best_action = action
     optimal_policy[state] = best_action
-    final_scores[state] = best_utility
 
-# Extracting results
-cumulative_reward_optimal_policy = sum(final_scores.values())
-print(f"Final Score (Optimal): {cumulative_reward_optimal_policy}")
+optimal_policy_indices = {}
 
-# Function to choose a random action for each state
-def choose_random_action(state, transition_probabilities):
-    if state not in transition_probabilities:
-        return None
-    actions = list(transition_probabilities[state].keys())
-    return random.choice(actions) if actions else None
+for state, action in optimal_policy.items():
+    state_idx = state_to_index[state]
+    action_idx = action_to_index[action]
+    optimal_policy_indices[state_idx] = action_idx
 
-# Calculate the cumulative reward for a random policy
-cumulative_reward_random_policy = 0
+base_name = os.path.splitext(input_file)[0]
+output_file = f"{base_name}.policy"
 
-for state in utilities:
-    random_action = choose_random_action(state, transition_probabilities)
-    if random_action:
-        for next_state in transition_probabilities[state][random_action]:
-            transition_prob = transition_probabilities[state][random_action][next_state]
-            reward = rewards[state][random_action]
-            cumulative_reward_random_policy += reward + transition_prob * (utilities.get(next_state, 0))
+with open(output_file, 'w') as file:
+    json.dump(optimal_policy_indices, file)
 
-print(f"Final Score (Random): {cumulative_reward_random_policy}")
+print(f"Optimal policy saved to {output_file}")
+
