@@ -6,7 +6,6 @@ import os
 import time
 import json
 
-# Load the data from the text file
 input_file = 'large.txt'
 data = pd.read_csv(input_file, delimiter='\t')
 
@@ -15,21 +14,18 @@ unique_actions = data['Training Program'].unique()
 state_to_index = {tuple(state): idx for idx, state in enumerate(unique_states.values)}
 action_to_index = {action: idx for idx, action in enumerate(unique_actions)}
 
-# Define the reward calculation based on the sum of score differences
 def calculate_reward(row):
     return sum([
         row['Next P_Score'] - row['P_Score'],
         row['Next C_Rating'] - row['C_Rating']
     ])
 
-# Add the calculated reward to each row in the dataset
+
 data['Reward'] = data.apply(calculate_reward, axis=1)
 
-# Define utility function based on the state features
 def utility_function(row):
     return row['P_Score'] + row['C_Rating']
 
-# Calculate rewards and transition probabilities
 def calculate_rewards_and_transitions(data):
     rewards = defaultdict(lambda: defaultdict(float))
     transition_counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
@@ -44,12 +40,10 @@ def calculate_rewards_and_transitions(data):
         transition_counts[state][action][next_state] += 1
         state_action_counts[state][action] += 1
 
-    # Average the rewards for each (state, action) pair
     for state in rewards:
         for action in rewards[state]:
             rewards[state][action] /= state_action_counts[state][action]
 
-    # Calculate transition probabilities
     transition_probabilities = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
     for state in transition_counts:
         for action in transition_counts[state]:
@@ -61,19 +55,15 @@ def calculate_rewards_and_transitions(data):
 
 start_time = time.time()
 
-# Calculate rewards and transition probabilities
 rewards, transition_probabilities = calculate_rewards_and_transitions(data)
 
-# Initialize utilities for each unique state
 current_states = data.iloc[:, :4].drop_duplicates()
 utilities = {tuple(row): utility_function(row) for _, row in current_states.iterrows()}
 
-# Define parameters for the iterative process
 discount_factor = 0.5
 convergence_threshold = 0.01
 max_iterations = 100
 
-# Iterative update process
 for iteration in range(max_iterations):
     updated_utilities = utilities.copy()
     delta = 0
@@ -97,7 +87,6 @@ for iteration in range(max_iterations):
 
 # Determine the optimal policy and final scores
 optimal_policy = defaultdict(tuple)
-
 for state in utilities:
     best_action = None
     best_utility = float('-inf')
@@ -124,8 +113,7 @@ with open(output_file, 'w') as file:
 
 print(f"Optimal policy saved to {output_file}")
 
-end_time = time.time()  # Record the end time
+end_time = time.time() 
 
-# Calculate the duration and print it
 duration = end_time - start_time
 print(f"Process completed in {duration:.2f} seconds")

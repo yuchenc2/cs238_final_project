@@ -15,7 +15,7 @@ TRAINING_CATEGORIES = [
 
 class BayesianMDP:
     def __init__(self, num_states, num_actions, discount_factor):
-        self.state_index_map = {}  # Map state tuples to indices
+        self.state_index_map = {}  
         self.current_state_index = 0
         self.S = np.arange(num_states)
         self.A = np.arange(num_actions)
@@ -92,11 +92,9 @@ def value_iteration(mdp, threshold=0.001):
 
 start_time = time.time()
 
-# Load and preprocess data
 data = parse_data('sample.txt')
 print("parsed data")
 
-# Adjust number of states and actions based on your data
 num_states = 9075
 num_actions = len(TRAINING_CATEGORIES)
 mdp = BayesianMDP(num_states, num_actions, discount_factor=0.9)
@@ -124,15 +122,12 @@ value_iteration(mdp)
 action_index_map = create_action_index_map(TRAINING_CATEGORIES)
 optimal_policy_indices = {state_idx: action_index_map[TRAINING_CATEGORIES[action_idx]] for state_idx, action_idx in enumerate(mdp.optimal_policy)}
 
-# Saving the optimal policy to a file
 output_file = "optimal_policy.json"
 with open(output_file, 'w') as file:
     json.dump(optimal_policy_indices, file)
 
 print(f"Optimal policy saved to {output_file}")
 
-end_time = time.time()  # Record the end time
-
-# Calculate the duration and print it
+end_time = time.time() 
 duration = end_time - start_time
 print(f"Process completed in {duration:.2f} seconds")

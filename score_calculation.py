@@ -2,21 +2,16 @@ import random
 import pandas as pd
 import json
 
-# Load the policy from the file
 with open('medium.policy', 'r') as file:
     policy = json.load(file)
 
-# Convert policy keys from string to integer (if necessary)
 policy = {int(k): v for k, v in policy.items()}
 
-# Load the data
-data = pd.read_csv('medium.txt', delimiter='\t')  # Ensure this matches your data file
+data = pd.read_csv('medium.txt', delimiter='\t')  
 
-# Unique states and actions
 unique_states = data[['Job Title Numeric', 'Years of Experience in Months', 'P_Score', 'C_Rating']].drop_duplicates()
 unique_actions = data['Training Program'].unique()
 
-# State and action mapping to integers for Q-table
 state_to_index = {tuple(state): idx for idx, state in enumerate(unique_states.values)}
 action_to_index = {action: idx for idx, action in enumerate(unique_actions)}
 
@@ -26,7 +21,6 @@ def evaluate_policy(data, policy, max_steps = 100, discount_factor=1.0):
     num_states = len(unique_states)
     count = 0
     for _, state_row in unique_states.iterrows():
-        # print(state_row)
         print(count)
         count= count + 1
         state = tuple(state_row)
@@ -40,8 +34,8 @@ def evaluate_policy(data, policy, max_steps = 100, discount_factor=1.0):
             transitions = data[(data[['Job Title Numeric', 'Years of Experience in Months', 'P_Score', 'C_Rating']].values == state).all(axis=1) 
                                & (data['Training Program'] == action)]
             
-            if transitions.empty:
-                break  # No transitions available, end the episode
+            if transitions.empty: # No transitions available, end the episode
+                break  
 
             sample = transitions.sample(n=1).iloc[0]
             reward = sample['Reward']
@@ -53,7 +47,6 @@ def evaluate_policy(data, policy, max_steps = 100, discount_factor=1.0):
 
         total_reward += episode_reward
 
-    # Average reward per unique state
     average_reward = total_reward / num_states
     return average_reward
 
@@ -84,7 +77,6 @@ def evaluate_random_policy(data, unique_actions, max_steps=100, discount_factor=
 
         total_reward += episode_reward
 
-    # Average reward per unique state
     average_reward = total_reward / num_states
     return average_reward
 
